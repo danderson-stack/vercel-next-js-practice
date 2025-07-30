@@ -19,6 +19,6 @@ export const authConfig = {
       return true;
     },
   },
-  providers: [], // Add providers with an empty array for now
+  providers: [], // The configuration provider is added in auth.ts
   debug: process.env.NODE_ENV === 'development',
 } satisfies NextAuthConfig;
