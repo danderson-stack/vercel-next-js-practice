@@ -21,7 +21,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           { label: 'Invoices', href: '/dashboard/invoices' },
           {
             label: 'Edit Invoice',
-            href: `/dashboard/invoice/${params.id}/edit`,
+            href: `/dashboard/invoice/${id}/edit`,
             active: true,
           },
         ]}
