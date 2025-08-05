@@ -2,14 +2,16 @@ import Image from 'next/image';
 import { lusitana } from '@/app/ui/fonts';
 import Search from '@/app/ui/search';
 import {
-  CustomersTableType,
   FormattedCustomersTable,
 } from '@/app/lib/definitions';
+import { InvoicesTableSkeleton } from '../skeletons';
 
-export default async function CustomersTable({
+export default function CustomersTable({
   customers,
+  isLoading = false,
 }: {
   customers: FormattedCustomersTable[];
+  isLoading?: boolean;
 }) {
   return (
     <div className="w-full">
@@ -20,6 +22,7 @@ export default async function CustomersTable({
       <div className="mt-6 flow-root">
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
+            {isLoading ? <InvoicesTableSkeleton /> : (
             <div className="overflow-hidden rounded-md bg-gray-50 p-2 md:pt-0">
               <div className="md:hidden">
                 {customers?.map((customer) => (
@@ -114,7 +117,7 @@ export default async function CustomersTable({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </div>)}
           </div>
         </div>
       </div>

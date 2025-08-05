@@ -1,26 +1,39 @@
-import { Metadata } from 'next';
-import { Suspense } from 'react';
+'use client';
+import { useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { useDebounce } from 'use-debounce';
 import Table from '@/app/ui/customers/table';
-import { fetchFilteredCustomers } from '@/app/lib/data';
+import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
+import { Suspense } from 'react';
 
-export const metadata: Metadata = {
-  title: 'Customers',
-};
+export default function Page() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('query') || '';
+  const [debouncedQuery] = useDebounce(query, 500); // 500ms debounce
 
-export default async function Page(props: {
-  searchParams?: Promise<{
-    query?: string;
-    page?: string;
-  }>;
-}) {
-  const searchParams = await props.searchParams;
-  const query = searchParams?.query || '';
-  const customers = await fetchFilteredCustomers(query);
-  return <div className="w-full">
-    <div className="flex w-full items-center justify-between">
-      <Suspense fallback={null}>
-        <Table customers={customers} />
-      </Suspense>
+  const { data: customers, error, isLoading } = useQuery({
+    queryKey: ['customers', debouncedQuery],
+    queryFn: async () => {
+      const response = await fetch(`/api/customers?query=${debouncedQuery}`);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    },
+    enabled: debouncedQuery !== undefined, // Only run when debounced query is ready
+  });
+
+  if (error) {
+    return <div>Error loading customers: {error.message}</div>;
+  }
+
+  return (
+    <div className="w-full">
+      <div className="flex w-full items-center justify-between">
+        <Suspense fallback={<InvoicesTableSkeleton />}>
+          <Table customers={customers || []} isLoading={isLoading} />
+        </Suspense>
+      </div>
     </div>
-  </div>;
+  );
 }
