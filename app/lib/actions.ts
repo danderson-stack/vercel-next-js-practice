@@ -34,6 +34,12 @@ const CreateInvoice = FormSchema.omit({ id: true, date: true });
 
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
+const CreateCustomer = z.object({
+  name: z.string().min(1, { message: 'Please enter a name' }),
+  email: z.string().email({ message: 'Please enter a valid email' }),
+  image_url: z.string().url({ message: 'Please enter a valid image URL' }),
+});
+
 export async function authenticate(prevState: string | undefined, formData: FormData) {
   try {
     await signIn('credentials', formData);
@@ -84,7 +90,6 @@ export async function createInvoice(prevState: State, formData: FormData) {
       }
     revalidatePath('/dashboard/invoices');
     redirect('/dashboard/invoices');
-  
 }
 
 
@@ -126,4 +131,34 @@ export async function updateInvoice(id: string, prevState: State, formData: Form
 export async function deleteInvoice(id: string) {
     await sql`DELETE FROM invoices WHERE id = ${id}`;
     revalidatePath('/dashboard/invoices');
+}
+
+export async function createCustomer(formData: FormData) {
+  const validatedFields = CreateCustomer.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    image_url: formData.get('image_url'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create Customer.',
+    };
+  }
+
+  const { name, email, image_url } = validatedFields.data;
+
+  try {
+    await sql`
+      INSERT INTO customers (name, email, image_url)
+      VALUES (${name}, ${email}, ${image_url})
+    `;
+    revalidatePath('/dashboard/customers');
+    return { message: 'Customer created successfully' };
+  } catch (error) {
+    return {
+      message: 'Database Error: Failed to Create Customer.',
+    };
+  }
 }
