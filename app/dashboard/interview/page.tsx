@@ -1,77 +1,97 @@
 'use client';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import type { InfiniteData } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useDebounce } from 'use-debounce';
+import GifGrid from './GifGrid';
+import { useInView } from 'react-intersection-observer';
 
-/**
- * 
- * @returns 
- * Requirements:
-    1. On the initial page load, it should display the current trending gifs (limit 20).
-    2. You should implement infinite scrolling so as the user scrolls down the page more gifs are dynamically loaded automatically.
-3. User can type a search keyword in a search field at the top of the page, which then displays the searched gifs dynamically as the user searches.
-    4. Clearing the search field should show the trending gifs again.
-    5. Styling and layout are less important but it should be mobile and desktop friendly.
-    6. Share your screen and try to only interact with the screen you are sharing.
-7. Try to explain the steps you are taking and why, why did you decide to create a specific function? Why do A instead of B? etc
-    8. Feel free to take shortcuts in order to complete the assignment quickly, and point out the areas you would improve on, given more time, at the end.
-    9. You can use any third party libraries that you would like except please refrain from using the Giphy SDKs
-    10. At the end of the interview, please email us a zip or link with the final code.
- */
+const GIPHY_API_KEY = 'F2Xrk2P2FnKXYSmEUdEzMHbVF1b6up6A';
+const PAGE_SIZE = 20;
+import type { MultiResponse } from 'giphy-api'; // Import the namespace for types
+
 export default function Page() {
-  const GIPHY_API_KEY = 'F2Xrk2P2FnKXYSmEUdEzMHbVF1b6up6A';
-
-  const getGifs = async (query?: string) => {
-    const endpoint = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=20`
-    
+  const { ref, inView } = useInView()
+  const getGifs = async (
+    query?: string,
+    offset: number = 0,
+    limit: number = PAGE_SIZE
+  ): Promise<MultiResponse> => {
+    const type = query?.trim() ? "search" : "trending";
+    const baseUrl = `https://api.giphy.com/v1/gifs/${type}?api_key=${GIPHY_API_KEY}`;
+  
+    const endpoint = type === "search"
+      ? `${baseUrl}&q=${encodeURIComponent(query!)}&limit=${PAGE_SIZE}&offset=${offset}`
+      : `${baseUrl}&limit=${limit}&offset=${offset}`;
+  
     const response = await fetch(endpoint);
     const data = await response.json();
     return data;
   };
 
-  const getTrendingGifs = async () => {
-    const endpoint = `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=20`
-    
-    const response = await fetch(endpoint);
-    const data = await response.json();
-    return data;
-  };
+const [query, setQuery] = useState('');
+const [debouncedQuery] = useDebounce(query, 500);
 
-  const [query, setQuery] = useState('');
-  const [debouncedQuery] = useDebounce(query, 500);
-
-// Initial trending query
-const { data: trendingData, isLoading: trendingLoading } = useQuery({
-  queryKey: ['gifs', 'trending'],
-  queryFn: getTrendingGifs,
-  enabled: true,
+const {
+  data,
+  isFetching,
+  isFetchingNextPage,
+  fetchNextPage,
+  hasNextPage,
+} = useInfiniteQuery<
+  MultiResponse,                        // TQueryFnData (resolved)
+  Error,                                // TError
+  InfiniteData<MultiResponse, number>,  // TData => has `.pages`
+  [string, string?],                    // TQueryKey
+  number                                // TPageParam
+>({
+  queryKey: ['gifs', debouncedQuery],
+  queryFn: ({ pageParam = 0 }) => getGifs(debouncedQuery, pageParam, PAGE_SIZE),
+  initialPageParam: 0,
+  getPreviousPageParam: (firstPage) => {
+    const { offset = 0 } = firstPage.pagination ?? {};
+    if (offset === 0) return undefined;
+    const prevOffset = Math.max(0, offset - PAGE_SIZE);
+    return Math.floor(prevOffset / PAGE_SIZE);
+  },
+  getNextPageParam: (lastPage) => {
+    const { offset = 0, count = PAGE_SIZE, total_count = 0 } = lastPage.pagination ?? {};
+    const nextOffset = offset + count;
+    return nextOffset >= total_count ? undefined : Math.floor(nextOffset / PAGE_SIZE);
+  },
 });
 
-// Search query
-const { data: searchData, isLoading: searchLoading } = useQuery({
-  queryKey: ['gifs', 'search', debouncedQuery],
-  queryFn: () => getGifs(debouncedQuery),
-  enabled: !!debouncedQuery,
-});
-
-// Use search data if available, otherwise trending data
-const data = searchData || trendingData;
-const isLoading = searchLoading || trendingLoading;
+useEffect(() => {
+  if (inView) {
+    fetchNextPage()
+  }
+}, [fetchNextPage, inView])
 
   return (
     <main>
-      <h1>Interview</h1>
+      <h1>Gif Search/Scroller</h1>
      <div>
       <input type="text" onChange={(e) => setQuery(e.target.value)} />
-
-        <ul>
-          {data?.data.map((gif: any) => (
-            <li key={gif.id}>
-              <img src={gif.images.downsized.url} alt={gif.title} />
-            </li>
-          ))}
-        </ul>
+      {data && <GifGrid allGifs={data.pages} />}
      </div>
+     <div>
+      <button
+        ref={ref}
+        onClick={() => fetchNextPage()}
+        disabled={!hasNextPage || isFetchingNextPage}
+      >
+        {isFetchingNextPage
+          ? 'Loading more...'
+          : hasNextPage
+            ? 'Load Newer'
+            : 'Nothing more to load'}
+      </button>
+    </div>
+     <div>
+      {isFetching && !isFetchingNextPage
+        ? 'Fetching gifs...'
+        : null}
+    </div>
     </main>
   );
 }
