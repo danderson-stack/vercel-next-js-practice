@@ -12,3 +12,20 @@
 10. At the end of the interview, please email us a zip or link with the final code.
  
 
+## Interview (lindy.ai)
+
+This page (`/dashboard/interview`) requires a Giphy API key.
+
+1. Create `.env.local` with:
+   NEXT_PUBLIC_GIPHY_API_KEY=your_giphy_api_key
+
+2. Restart the dev server.
+
+Note: This page is specifically for a lindy.ai interview exercise.
+
+- Updated `app/dashboard/interview/GifPanel.tsx` to use `process.env.NEXT_PUBLIC_GIPHY_API_KEY` and throw if missing.
+
+# .env.example
+NEXT_PUBLIC_GIPHY_API_KEY=__REPLACE_ME__
+ 
+
