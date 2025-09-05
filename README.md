@@ -67,3 +67,13 @@ This is a completed educational project. For questions about the course content,
 ---
 
 Built with ❤️ using Next.js
+
+## Giphy Infinite Scroll Examples
+
+The `/giphy` route showcases three side-by-side implementations of an infinite Giphy search:
+
+1. **React Query** – uses `useInfiniteQuery` for declarative data fetching.
+2. **Manual Fetch** – employs native `fetch` and an `IntersectionObserver` for pagination.
+3. **Scroll Event** – listens to the window `scroll` event for a library-free approach.
+
+Add your `NEXT_PUBLIC_GIPHY_API_KEY` to the environment to experiment with these examples.
