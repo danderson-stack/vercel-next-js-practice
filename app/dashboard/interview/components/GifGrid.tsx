@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 import type Giphy from 'giphy-api';
-import GifCard from './GifCard'
+import GifCard from './GifCard';
 
 const Grid = styled.div`
   display: grid;
@@ -9,11 +9,11 @@ const Grid = styled.div`
 `;
 
 export default function GifGrid({ allGifs }: { allGifs?: Giphy.GIFObject[] }) {
-  if(!allGifs) return null;
+  if (!allGifs) return null;
   return (
     <Grid>
-      {allGifs?.map((gif) => (
-        <GifCard gif={gif} />
+      {allGifs.map((gif) => (
+        <GifCard key={gif.id} gif={gif} />
       ))}
     </Grid>
   );
